@@ -132,7 +132,7 @@ public class QueueServiceImpl implements QueueService {
             int delivery = record.getDelivered();
             boolean retryExhausted = delivery - 1 >= record.getStrategy().maxRetries();
             boolean nonRetryable = planner.isNonRetryable(failureReason);
-            if (replayOrigin != null && !retryExhausted && !nonRetryable) {
+            if (!retryExhausted && !nonRetryable) {
                 backoffRetry(record, failureReason, delivery, now);
                 return null;
             }
