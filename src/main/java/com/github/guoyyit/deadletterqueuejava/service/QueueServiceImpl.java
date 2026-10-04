@@ -121,10 +121,10 @@ public class QueueServiceImpl implements QueueService {
             long now = System.currentTimeMillis();
             QueueRecord record = findMessage(state, messageId);
             if (record == null) {
-                throw new NoSuchElementException("消息不存在或已结束: " + messageId);
+                throw new IllegalStateException("消息不存在或已结束，失败回执被拒绝: " + messageId);
             }
             if (record.getStatus() != MessageStatus.IN_FLIGHT) {
-                throw new IllegalStateException("消息当前不在消费中，无法回执失败: " + messageId);
+                throw new IllegalStateException("消息当前不在消费中，重复失败回执被拒绝: " + messageId);
             }
             DeadLetterRecord replayOrigin = record.getOriginDeadLetterId() == null
                     ? null
@@ -132,7 +132,7 @@ public class QueueServiceImpl implements QueueService {
             int delivery = record.getDelivered();
             boolean retryExhausted = delivery - 1 >= record.getStrategy().maxRetries();
             boolean nonRetryable = planner.isNonRetryable(failureReason);
-            if (replayOrigin != null && !retryExhausted && !nonRetryable) {
+            if (!retryExhausted && !nonRetryable) {
                 backoffRetry(record, failureReason, delivery, now);
                 return null;
             }
